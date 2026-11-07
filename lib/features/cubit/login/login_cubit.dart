@@ -1,53 +1,60 @@
 
 import 'package:bloc/bloc.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import '../../../core/helpers/hive_helper.dart';
-import '../../../core/helpers/network/api_const.dart';
-import '../../../core/helpers/network/network_helper.dart';
-import '../../model/login_model.dart';
-import '../../view/home_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
+
 import 'login_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit() : super(AuthInitial());
 
-  LoginModel loginModel = LoginModel();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  void login(String email, String pass) async {
+  Future<void> login(String email, String pass) async {
     emit(AuthLoading());
 
     try {
-      final result = await NetworkHelper.postData(
-        path: ApiConst.login,
-        body: {
-          "email": email,
-          "password": pass,
-        },
+      await _firebaseAuth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: pass,
       );
 
-      loginModel = LoginModel.fromJson(result.data);
+      emit(AuthSuccess());
+    } on FirebaseAuthException catch (e) {
+      print('Firebase Auth Error: ${e.code}');
 
-      if (loginModel.statusCode == 200) {
-        /// Navigate To Home
-        HiveHelper.setToken(loginModel.data?.token ?? "");
+      Get.snackbar(
+        'Login Failed',
+        _getErrorMessage(e.code),
+      );
 
-        Get.offAll(HomePage());
-
-        emit(AuthSuccess());
-      } else {
-        Get.snackbar(
-          "Error",
-          loginModel.message ?? "",
-          backgroundColor: Colors.red,
-        );
-
-        emit(AuthError());
-      }
+      emit(AuthError());
     } catch (e) {
       print(e.toString());
+
+      Get.snackbar(
+        'Error',
+        'Something went wrong. Please try again.',
+      );
+
       emit(AuthError());
+    }
+  }
+
+  String _getErrorMessage(String code) {
+    switch (code) {
+      case 'invalid-credential':
+      case 'wrong-password':
+      case 'user-not-found':
+        return 'Email or password is incorrect.';
+      case 'invalid-email':
+        return 'Please enter a valid email.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again later.';
+      default:
+        return 'Login failed. Please try again.';
     }
   }
 }

@@ -1,6 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:ecommerce_app/features/cubit/home/home_cubit.dart';
 import 'package:ecommerce_app/features/cubit/login/login_cubit.dart';
 import 'package:ecommerce_app/features/cubit/login/login_state.dart';
@@ -26,6 +27,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final remoteConfig = FirebaseRemoteConfig.instance;
+
+    final welcomeMessage =
+    remoteConfig.getString('welcome_message').isNotEmpty
+        ? remoteConfig.getString('welcome_message')
+        : 'Welcome back!';
+
+    final loginSubtitle =
+    remoteConfig.getString('login_subtitle').isNotEmpty
+        ? remoteConfig.getString('login_subtitle')
+        : 'Sign in to continue shopping.';
+
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthSuccess) {
@@ -43,7 +56,9 @@ class _LoginScreenState extends State<LoginScreen> {
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Login failed, check your email and password'),
+              content: Text(
+                'Login failed, check your email and password',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -58,20 +73,24 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Welcome back!',
-                    style: TextStyle(
+                  Text(
+                    welcomeMessage,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Sign in to continue shopping.',
-                    style: TextStyle(color: Colors.white70),
+                  Text(
+                    loginSubtitle,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                    ),
                   ),
                   const SizedBox(height: 35),
+
+                  // Email
                   TextField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -87,6 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Password
                   TextField(
                     controller: passwordController,
                     obscureText: true,
@@ -102,6 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Login Button
                   BlocBuilder<AuthCubit, AuthState>(
                     builder: (context, state) {
                       final isLoading = state is AuthLoading;
@@ -110,9 +133,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: isLoading
                             ? null
                             : () {
-                          if (emailController.text.trim().isEmpty ||
+                          if (emailController.text
+                              .trim()
+                              .isEmpty ||
                               passwordController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(
                               const SnackBar(
                                 content: Text(
                                   'Enter your email and password',
@@ -130,7 +156,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF403354),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
                         ),
                         child: isLoading
                             ? const SizedBox(
